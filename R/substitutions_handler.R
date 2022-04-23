@@ -17,7 +17,7 @@
 #'   new_x <- rotations(x, start_point_id = 25, new_rotation = c(9,6,15,4,12,7))
 #' }
 #' @export
-rotations <- function(x, team, start_point_id, set_number, new_rotation = NULL) {
+rotations <- function(x, team, start_point_id, set_number, new_rotation = NULL, new_rotation_id = NULL) {
     teamSelect <- if (missing(team)) datavolley::home_team(x) else team
     if (!teamSelect %in% datavolley::teams(x)) stop("team does not appear in the data")
     set_number_select <- if (missing(set_number)) 1 else set_number
@@ -42,6 +42,7 @@ rotations <- function(x, team, start_point_id, set_number, new_rotation = NULL) 
     } else {
         x_tmp <- dplyr::distinct(dplyr::filter(dplyr::select(x$plays, 'point_id', 'skill', tidyselect::starts_with("visiting_player_id")), .data$point_id %in% point_ids, .data$skill %in% c("Serve", "Timeout")))
     }
+
     if (is_home){
         x_tmp_long <- tidyr::pivot_longer(x_tmp, tidyselect::starts_with("home_player_id"), names_to = "position", values_to = "home_player_id")
         x_tmp_long$position <- stringr::str_remove(x_tmp_long$position, "home_player_id")
@@ -59,6 +60,7 @@ rotations <- function(x, team, start_point_id, set_number, new_rotation = NULL) 
     x_tmp_wide_new <- NULL
     if (!is.null(new_rotation)){
         new_rotation <- as.character(new_rotation)
+        new_rotation_id <- as.character(new_rotation_id)
         if (sum(new_rotation %in% player_table$number) < 6) stop("Not all players are on the team list. Please update.")
         if (is_home){
             starting_rotation <- stringr::str_c("\\b", as.character(x_tmp_long$home_p[1:6]), "\\b", collapse="|")
@@ -69,9 +71,10 @@ rotations <- function(x, team, start_point_id, set_number, new_rotation = NULL) 
                                                           'point_id', 'position', 'new_p', 'player_id'), "home_p" = "new_p", "home_player_id" = "player_id")
             x_tmp_wide_new <- tidyr::pivot_wider(x_tmp_long_new,id_cols = "point_id", names_from = "position", values_from = c("home_player_id","home_p"), names_sep = "")
         } else {
-            starting_rotation <- stringr::str_c("\\b", as.character(x_tmp_long$visiting_p[1:6]), "\\b", collapse="|")
-            replaceRot <- function(rot) new_rotation[which(rot == as.character(x_tmp_long$visiting_p[1:6]))]
-            x_tmp_long$new_p <- stringr::str_replace_all(x_tmp_long$visiting_p, starting_rotation, replaceRot)
+            starting_rotation_id <- stringr::str_c("\\b", as.character(x_tmp_long$visiting_player_id[1:6]), "\\b", collapse="|")
+            #replaceRot <- function(rot) new_rotation[which(rot == as.character(x_tmp_long$visiting_p[1:6]))]
+            replaceRotid <- function(rot) new_rotation_id[which(rot == as.character(x_tmp_long$visiting_player_id[1:6]))]
+            x_tmp_long$new_p <- player_table$number[match(stringr::str_replace_all(x_tmp_long$visiting_player_id, starting_rotation_id, replaceRotid),player_table$player_id)]
             x_tmp_long$new_p <- as.numeric(x_tmp_long$new_p)
             x_tmp_long_new <- dplyr::rename(dplyr::select(dplyr::left_join(x_tmp_long, dplyr::select(player_table,'number', 'player_id'), by = c("new_p" = "number")),
                                                           'point_id', 'position', 'new_p', 'player_id'), "visiting_p" = "new_p", "visiting_player_id" = "player_id")

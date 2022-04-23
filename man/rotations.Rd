@@ -4,7 +4,14 @@
 \alias{rotations}
 \title{Get team rotations point by point}
 \usage{
-rotations(x, team, start_point_id, set_number, new_rotation = NULL)
+rotations(
+  x,
+  team,
+  start_point_id,
+  set_number,
+  new_rotation = NULL,
+  new_rotation_id = NULL
+)
 }
 \arguments{
 \item{x}{datavolley or data.frame: a datavolley object as returned by \code{read_dv}, or the plays component of that object}
