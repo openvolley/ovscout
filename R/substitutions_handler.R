@@ -5,7 +5,7 @@
 #' @param team string: team name
 #' @param start_point_id vector: vector of pointids for which to return the rotation
 #' @param set_number value: Set number
-#' @param new_rotation vector: vector of player number, positionned from 1 to 6.
+#' @param new_rotation vector: vector of player number, positioned from 1 to 6.
 #'
 #' @return list of 2 data.frames. Current data.frame, without changes, and updated data.frame, with new player rotation. 
 #'
@@ -17,19 +17,24 @@
 #'   new_x <- rotations(x, start_point_id = 25, new_rotation = c(9,6,15,4,12,7))
 #' }
 #' @export
-rotations <- function(x, team, start_point_id, set_number, new_rotation = NULL, new_rotation_id = NULL) {
+rotations <- function(x, team, start_point_id, set_number, new_rotation, new_rotation_id) {
     teamSelect <- if (missing(team)) datavolley::home_team(x) else team
     if (!teamSelect %in% datavolley::teams(x)) stop("team does not appear in the data")
     set_number_select <- if (missing(set_number)) 1 else set_number
     if (missing(start_point_id)) start_point_id <- min(x$plays$point_id[x$plays$set_number == set_number_select])
     
+    is_home <- teamSelect == datavolley::home_team(x)
+    player_table <- if (is_home) x$meta$players_h else x$meta$players_v
+    player_table <- dplyr::select(player_table, "number", "player_id", "special_role", "role")
+    
+    if(missing(new_rotation_id)){
+        new_rotation_id <- player_table$player_id[match(new_rotation, player_table$number)]
+    }
+    
     all_point_ids <- unique(x$plays$point_id[x$plays$set_number == set_number_select])
     
     point_ids <- all_point_ids[which(all_point_ids == start_point_id):length(all_point_ids)]
 
-    is_home <- teamSelect == datavolley::home_team(x)
-    player_table <- if (is_home) x$meta$players_h else x$meta$players_v
-    player_table <- dplyr::select(player_table, "number", "player_id", "special_role", "role")
 
     # Point id may not uniquely identify rotation, because substitutions will affect a point id as well. So we need to create our own unique ids. 
     # Say, when the skill is equal to serve, or Timeout

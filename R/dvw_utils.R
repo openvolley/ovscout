@@ -1,3 +1,23 @@
+#' @export
+home_players <- function(x, limited = TRUE){
+    if ("meta" %in% names(x)) {
+        if(limited) x$meta$players_h[,c("number", "player_id", "lastname", "firstname", "name","role")] else x$meta$players_h
+    }
+    else {
+        if(limited) x$players_h[,c("number", "player_id", "lastname", "firstname", "name","role")] else x$players_h
+    }
+}
+
+#' @export
+visiting_players <- function(x, limited = TRUE){
+    if ("meta" %in% names(x)) {
+        if(limited) x$meta$players_v[,c("number", "player_id", "lastname", "firstname", "name","role")] else x$meta$players_v
+    }
+    else {
+        if(limited) x$players_v[,c("number", "player_id", "lastname", "firstname", "name","role")] else x$players_v
+    }
+}
+
 reparse_dvw <- function(x, dv_read_args = list()) {
     tf <- tempfile()
     on.exit(unlink(tf))
@@ -168,7 +188,7 @@ dv_insert_digs <- function(dvw, ridx = NULL) {
 
 
 dv_create_substitution <- function(dvw, team = NULL, ridx = NULL, in_player = NULL, out_player = NULL, new_setter = NULL) {
-    if(is.null(ridx)){ridx = nrow(dvw$plays)-1}
+    if(is.null(ridx)){ridx = nrow(dvw$plays)}
     current_point_id <- dvw$plays$point_id[ridx]
     current_set_number <- dvw$plays$set_number[ridx]
     teamSelect <- team
@@ -225,7 +245,7 @@ dv_create_substitution <- function(dvw, team = NULL, ridx = NULL, in_player = NU
     
     dvw$plays <-  dplyr::bind_rows(dvw$plays, new_row)
 
-    dvw$plays[(nrow(dvw$plays)-5):(nrow(dvw$plays)), c("home_setter_position",paste0("home_p",1:6), paste0("home_player_id",1:6), "player_id")]
+    #dvw$plays[(nrow(dvw$plays)-5):(nrow(dvw$plays)), c("home_setter_position",paste0("home_p",1:6), paste0("home_player_id",1:6), "player_id")]
     
     
     ## If the substitution leads to a change of setter:
@@ -272,12 +292,16 @@ dv_create_substitution <- function(dvw, team = NULL, ridx = NULL, in_player = NU
 }
 
 # Test:
-# dvw <- datavolley::read_dv("/home/ick003/Documents/Donnees/VolleyBall/GameDatasets/AOVC 2019 Womens (Datavolley)/&qua02 tasmanian-queensland p.dvw")
-# setnumber <- 4
+# dvw <- datavolley::read_dv(ovdata::ovdata_example())
+# setnumber <- 1
 # team = datavolley::visiting_team(dvw)
-# new_rotation = c(28,25,29,32,24,33)
-# new_setter = 28
-# dv_change_startinglineup(dvw, team, setnumber, new_rotation, new_setter)
+# visiting_players(dvw)
+# new_rotation = c(1,5,7,9,10,12)
+# new_rotation_id = dvw$meta$players_v$player_id[match(new_rotation, dvw$meta$players_v$number)]
+# new_setter = 1
+# dvw_new <- dv_change_startinglineup(dvw, team, setnumber, new_rotation, new_rotation_id, new_setter)
+# datavolley::write_dv(dvw_new, file= "bla.dvw")
+# dvw_new_new = datavolley::read_dv("bla.dvw")
 dv_change_startinglineup <- function(dvw, team, setnumber, new_rotation = NULL, new_rotation_id = NULL, new_setter) {
     if (!team %in% datavolley::teams(dvw)) stop("team does not appear in the data")
     selectTeam <- team
