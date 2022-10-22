@@ -693,6 +693,54 @@ ov_shiny_video_sync_server <- function(app_data) {
             }
         })
 
+        ### IF EDITING CODE, DISPLAY A VIDEO REVIEW LOOP (ATTEMPT)
+        
+        review_pane_active <- reactiveVal(FALSE)
+        show_review_pane <- function() {
+            ## use the current video time from the main video
+            ## construct the playlist js by hand, because we need to inject the current video time
+            revsrc <- get_src_type(if (current_video_src() == 1L) app_data$video_src else app_data$video_src2)
+            dojs(paste0("var start_t=vidplayer.currentTime()-2; revpl.set_playlist_and_play([{'video_src':'", revsrc$src, "','start_time':start_t,'duration':4,'type':'", revsrc$type, "'}], 'review_player', '", revsrc$type, "', true); revpl.set_playback_rate(1.4);"))
+            js_show2("review_pane")
+            dojs("Shiny.setInputValue('rv_height', $('#review_player').innerHeight());")
+            review_pane_active(TRUE)
+        }
+        observeEvent(input$rv_height, {
+            ##cat("rv_height: ", cstr(input$rv_height), "\n")
+            if ((length(input$rv_height) < 1 || is.na(input$rv_height) || input$rv_height <= 0) && review_pane_active()) {
+                dojs("Shiny.setInputValue('rv_height', $('#review_player').innerHeight());")
+            }
+        })
+        observe({
+            output$review_overlay <- renderPlot({
+                opar <- par(mar = c(0, 0, 0, 0), oma = c(0, 0, 0, 0))
+                plot(c(0, 1), c(0, 1), xlim = c(0, 1), ylim = c(0, 1), type = "n", xlab = NA, ylab = NA, axes = FALSE, xaxs = "i", yaxs = "i")
+                if (TRUE) {##isTRUE(prefs$show_courtref)) {
+                    oxy <- overlay_court_lines()
+                    ## account for aspect ratios
+                    ## ?? oxy$image_x <- ar_fix_x(oxy$image_x)
+                    ## ?? oxy$xend <- ar_fix_x(oxy$xend)
+                    ## ?? oxy$image_y <- ar_fix_y(oxy$image_y)
+                    ## ?? oxy$yend <- ar_fix_y(oxy$yend)
+                    segments(x0 = oxy$image_x, y0 = oxy$image_y, x1 = oxy$xend, y1 = oxy$yend, col = app_data$styling$court_lines_colour)
+                }
+                if (!is.null(overlay_points()) && nrow(overlay_points()) > 0) {
+                    ixy <- setNames(crt_to_vid(overlay_points(), arfix = FALSE), c("x", "y"))
+                    ## points as blue, invalid points as red
+                    points(ixy$x[overlay_points()$valid], ixy$y[overlay_points()$valid], bg = "dodgerblue", pch = 21, col = "white", cex = 2.5)
+                    points(ixy$x[!overlay_points()$valid], ixy$y[!overlay_points()$valid], bg = "firebrick", pch = 21, col = "white", cex = 2.5)
+                }
+                par(opar)
+            }, bg = "transparent", height = input$rv_height)
+        })
+        hide_review_pane <- function() {
+            js_hide2("review_pane")
+            dojs("revpl.video_stop();")
+            review_pane_active(FALSE)
+        }
+        
+        ####
+        
         edit_current_code <- function() {
             ridx <- playslist_current_row()
             if (!is.null(ridx)) {
@@ -708,6 +756,7 @@ ov_shiny_video_sync_server <- function(app_data) {
                                                      build_code_entry_guide("edit", rdata$dvw$plays[ridx, ])))
                                       })
                 ))
+                show_review_pane()
                 if (!is_skill(rdata$dvw$plays$skill[ridx])) {
                     ## if it's a non-skill code then focus into the code_entry textbox with cursor at end of input
                     focus_in_code_entry("code_entry")
