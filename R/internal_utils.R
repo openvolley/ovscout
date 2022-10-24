@@ -28,3 +28,62 @@ names_first_to_capital <- function(x, fun) {
 var2fc <- function(x) {
     vapply(x, function(z) gsub("_", " ", paste0(toupper(substr(z, 1, 1)), substr(z, 2, nchar(z)))), FUN.VALUE = "", USE.NAMES = FALSE)
 }
+
+is_url <- function(z) grepl("^https?://", z, ignore.case = TRUE)
+is_youtube_url <- function(z) grepl("https?://[^/]*youtube\\.com", z, ignore.case = TRUE) || grepl("https?://youtu\\.be/", z, ignore.case = TRUE)
+is_youtube_id <- function(z) {
+    if (is.null(z)) {
+        FALSE
+    } else if (!is.character(z)) {
+        rep(FALSE, length(z))
+    } else {
+        !is.na(z) & nchar(z) == 11 & grepl("^[[:alnum:]_\\-]+$", z)
+    }
+}
+youtube_url_to_id <- function(z) {
+    if (!is_youtube_id(z) && grepl("^https?://", z, ignore.case = TRUE)) {
+        if (grepl("youtu\\.be", z, ignore.case = TRUE)) {
+            ## assume https://youtu.be/xyz form
+            tryCatch({
+                temp <- httr::parse_url(z)
+                if (!is.null(temp$path) && length(temp$path) == 1 && is_youtube_id(temp$path)) {
+                    temp$path
+                } else {
+                    z
+                }
+            }, error = function(e) z)
+        } else {
+            tryCatch({
+                temp <- httr::parse_url(z)
+                if (!is.null(temp$query$v) && length(temp$query$v) == 1) {
+                    temp$query$v
+                } else {
+                    z
+                }
+            }, error = function(e) z)
+        }
+    } else {
+        z
+    }
+}
+## probably misguided attempt to distinguish internal/public IP addresses/hostnames
+is_remote_url <- function(x) {
+    if (is.null(x) || is.na(x) || !nzchar(x) || !is_url(x)) return(FALSE)
+    hst <- httr::parse_url(x)$hostname
+    !(hst %in% c("localhost") || grepl("^(127|0|192|172\\.16)\\.", hst))
+}
+
+dojs <- function(jscmd) {
+    ##cat("js: ", jscmd, "\n")
+    shiny::getDefaultReactiveDomain()$sendCustomMessage("evaljs", jscmd)
+}
+js_show2 <- function(id) dojs(paste0("var el=$('#", id, "'); el.show();"))
+js_hide2 <- function(id) dojs(paste0("var el=$('#", id, "'); el.hide();"))
+
+plotOutputWithAttribs <- function(outputId, width = "100%", height = "400px", click = NULL, dblclick = NULL, hover = NULL, brush = NULL, inline = FALSE, ...) {
+    out <- shiny::plotOutput(outputId = outputId, width = width, height = height, click = click, dblclick = dblclick, hover = hover, brush = brush, inline = inline)
+    rgs <- list(...)
+    ## add extra attributes
+    for (i in seq_along(rgs)) out$attribs[[names(rgs)[i]]] <- rgs[[i]]
+    out
+}
