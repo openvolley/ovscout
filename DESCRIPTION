@@ -1,6 +1,6 @@
 Package: ovscout
 Title: An R Shiny App for Editing, Syncing, and Scouting Volleyball Match Files
-Version: 0.4.5.9000
+Version: 0.4.6
 Authors@R: c(person(given = "Ben", family = "Raymond", role = c("aut", "cre"), email = "ben@untan.gl"),
              person(given = "Adrien", family = "Ickowicz", role = "aut"),
              person("openvolley.org", role = "org"))
@@ -25,7 +25,6 @@ Imports:
     lubridate,
     ovideo (>= 0.0.5),
     rintrojs,
-    rlang,
     servr (>= 0.15.1),
     shiny,
     shinyTime,
@@ -39,4 +38,4 @@ Suggests:
     tcltk,
     testthat
 Remotes: openvolley/datavolley, openvolley/ovideo
-RoxygenNote: 7.1.2
+RoxygenNote: 7.2.1
